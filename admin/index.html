@@ -80,6 +80,19 @@
                     $('.user_center_link>img').attr('src', backData.data.userPic);
                 }
             })
+
+            //登出操作
+            //1.给设置点击事件
+            $(".logout").on('click', function (e) {
+                //2.阻止默认行为跳转
+                e.preventDefault();
+                if (confirm('确定要退出登录吗')) {
+                    //3.将token值删除
+                    localStorage.removeItem('token');
+                    //4.跳会登录页面
+                    location.href = './login.html'
+                }
+            })
         })
     </script>
 </body>
