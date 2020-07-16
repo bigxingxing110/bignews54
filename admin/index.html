@@ -54,6 +54,8 @@
 
         </div>
     </div>
+    <!-- 调用http.js -->
+    <script src="./libs/http.js"></script>
     <script>
         $(function () {
             //发送ajax请求,将token令牌传入服务器做验证,如果成功,则获得用户信息
@@ -69,7 +71,8 @@
 
             //ajax方法设置请求头
             $.get({
-                url: 'http://localhost:8080/api/v1/admin/user/info',
+                //url: 'http://localhost:8080/api/v1/admin/user/info',
+                url: BigNew.user_info,
                 //设置请求头,但用的最多的方法是全局配置
                 //headers: { 'Authorization': localStorage.getItem('token') },
                 dataType: 'json',
