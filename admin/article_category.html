@@ -62,18 +62,19 @@
                 </div>
                 <div class="modal-body">
                     <form>
+                        <input type="hidden" name="id" id='hiddenId'>
                         <div class="form-group">
                             <label for="recipient-name" class="control-label">分类名称:</label>
-                            <input type="text" class="form-control" id="recipient-name">
+                            <input type="text" class="form-control" id="recipient-name" name="name">
                         </div>
                         <div class="form-group">
                             <label for="message-text" class="control-label">分类类别:</label>
-                            <textarea class="form-control" id="message-text"></textarea>
+                            <input class="form-control" id="message-text" name="slug"></input>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal" id="btnCancel">Close</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal" id="btnCancel">取消</button>
                     <button type="button" class="btn btn-primary" id='addOrEdit'>Send message</button>
                 </div>
             </div>
@@ -97,17 +98,19 @@
     <script>
         $(function () {
             //发送ajax请求,获取文章类别,进行模板渲染
-            $.ajax({
-                type: 'get',
-                url: BigNew.category_list,
-                dataType: 'json',
-                success: function (backData) {
-                    //console.log(backData);
-                    let rel = template('temp_cate', backData);
-                    $("tbody").html(rel);
-                }
-            })
-
+            function setInitHTML() {
+                $.ajax({
+                    type: 'get',
+                    url: BigNew.category_list,
+                    dataType: 'json',
+                    success: function (backData) {
+                        //console.log(backData);
+                        let rel = template('temp_cate', backData);
+                        $("tbody").html(rel);
+                    }
+                })
+            }
+            setInitHTML();
             //编辑和新增分类(bootStrap模板引擎渲染)
             //1.触发点击事件
             //show 方法调用之后立即触发该事件。如果是通过点击某个作为触发器的元素，则此元素可以通过事件的 relatedTarget 属性进行访问。
@@ -115,37 +118,90 @@
                 //console.log(e.relatedTarget);//可以获取触发显示模态框的触发元素
                 //1.通过判断元素分别出是编辑还是新增/按钮从而进行修改
                 if (e.relatedTarget === $('#xinzengfenlei')[0]) {
-                    alert('这是新增按钮触发的模态框')
                     //1.需要修改：按钮的文本颜色,顶部的文本
+                    $('#myModalLabel').text('新增管理');
+                    $("#addOrEdit").text('新增').addClass('btn-success');
+
                 } else {
-                    alert('这是编辑按钮触发的模态框')
                     //将本来的内容显示到到模态框的input上
                     //在给input设置一个隐藏域保存id
+                    $('#myModalLabel').text('编辑管理');
+                    $("#addOrEdit").text('编辑').addClass('btn-primary');
+                    $('#hiddenId').val(e.relatedTarget.dataset.id);
+                    $('#recipient-name').val($(e.relatedTarget).parent().prev().prev().text());
+                    $('#message-text').val($(e.relatedTarget).parent().prev().text());
                 }
             })
 
             //点击新增文章分类按钮触发事件
             $('#addOrEdit').on('click', function () {
                 //1.通过类名判断出新增和编辑
-                if (aa) {
+                if ($("#addOrEdit").hasClass('btn-success')) {
                     //新增
                     //获取用户新增的数据
+                    let name = $("#recipient-name").val();
+                    let slug = $('#message-text').val();
                     //发送ajax请求
-                    //重新渲染页面
+                    $.post({
+                        url: BigNew.category_add,
+                        data: { name, slug },
+                        dataType: 'json',
+                        success: function (backData) {
+                            if (backData.code == 201) {
+                                alert('新增成功');
+                                $('#myModal').modal('hide');
+                                //重新渲染页面
+                                setInitHTML();
+                            }
+                        }
+                    })
+
                 } else {
                     //编辑
                     //用serialize获取到有name属性的inputvalue值发送ajax渲染页面
+                    let fd = $('.modal-body form').serialize();
+                    $.post({
+                        url: BigNew.category_edit,
+                        data: fd,
+                        dataType: 'json',
+                        success: function (backData) {
+                            if (backData.code == 200) {
+                                alert(backData.msg);
+                                $('#myModal').modal('hide');
+                                //重新渲染页面
+                                setInitHTML();
+                            }
+                        }
+                    })
+
                 }
             })
 
             //点击删除按钮删除内容
             $("tbody").on('click', '.btn-delete', function () {
-                //获取id，发送ajax请求再渲染页面
+                if (confirm('确定要删除啊？')) {
+                    //获取id，发送ajax请求再渲染页面
+                    let cateId = $(this).attr("data-id");
+                    $.post({
+                        url: BigNew.category_delete,
+                        data: { id: cateId },
+                        dataType: 'json',
+                        success: function (backData) {
+                            if (backData.code == 204) {
+                                alert(backData.msg);
+                                //重新渲染页面
+                                setInitHTML();
+                            }
+                        }
+                    })
+
+                }
             })
 
             //点击取消按钮后，清空form里的数据
             $('#btnCancel').on('click', function () {
                 //获取form表单然后用reset()方法可以清空
+                $('.modal-body form')[0].reset();
             })
         })
 

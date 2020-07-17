@@ -72,14 +72,85 @@
             </div>
         </div>
     </div>
+    <!-- 类别模板引擎 -->
+    <script type="template/text" id='cate_temp'>
+        <option value="">所有分类</option>
+        {{each data v}}
+        <option value="{{v.id}}">{{v.name}}</option>
+        {{/each}}
+    </script>
+
+    <!-- 页面初始化渲染引擎 -->
+    <script type="template/text" id='init_temp'>
+        {{each data.data v}}
+        <tr>
+            <td>{{v.title}}</td>
+            <td>{{v.author}}</td>
+            <td>{{v.category}}</td>
+            <td class="text-center">{{v.date}}</td>
+            <td class="text-center">{{v.state}}</td>
+            <td class="text-center">
+                <a href="article_edit.html" class="btn btn-default btn-xs" data-id="{{v.categorId}}">编辑</a>
+                <a href="javascript:void(0);" class="btn btn-danger btn-xs delete" data-id="{{v.categorId}}">删除</a>
+            </td>
+        </tr>
+        {{/each}}
+    </script>
+
     <script src="./libs/http.js"></script>
     <script>
         $(function () {
             //发送ajax获取所有分类再分别设置到option里(可以复制上一个页面的)
+            $.ajax({
+                type: 'get',
+                url: BigNew.category_list,
+                dataType: 'json',
+                success: function (backData) {
+                    let rel = template('cate_temp', backData);
+                    $('#selCategory').html(rel);
+                }
+            })
+
+            //页面初始化
+            $.ajax({
+                type: 'get',
+                url: BigNew.article_query,
+                data: {
+                    type: $('#selCategory').val(),
+                    state: $('#selStatus').val(),
+                    perpage: 6,
+                },
+                dataType: 'json',
+                success: function (backData) {
+                    if (backData.code == 200) {
+                        let rel = template('init_temp', backData);
+                        $('.container-fluid tbody').html(rel);
+                    }
+
+                }
+            })
+
             //发送ajax请求获取查询数据进行模板渲染到页面
             //点击筛选
-            $('#btnSearch').on('click', function () {
+            $('#btnSearch').on('click', function (e) {
+                e.preventDefault();
+                $.ajax({
+                    type: 'get',
+                    url: BigNew.article_query,
+                    data: {
+                        type: $('#selCategory').val(),
+                        state: $('#selStatus').val(),
+                        perpage: 6,
+                    },
+                    dataType: 'json',
+                    success: function (backData) {
+                        if (backData.code == 200) {
+                            let rel = template('init_temp', backData);
+                            $('.container-fluid tbody').html(rel);
+                        }
 
+                    }
+                })
             })
         })
     </script>
