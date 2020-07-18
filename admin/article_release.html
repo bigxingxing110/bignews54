@@ -67,6 +67,40 @@
             </form>
         </div>
     </div>
+    <script type="text/template" id="temp_cate">
+        {{each data v}}
+        <option value="{{v.id}}">{{v.name}}</option>
+        {{/each}}
+    </script>
+    <script src="./libs/http.js"></script>
+    <script>
+        $(function () {
+            //显示所有文章类别
+
+            $.ajax({
+                type: 'get',
+                url: BigNew.category_list,
+                dataType: 'json',
+                success: function (backData) {
+                    //console.log(backData);
+                    let rel = template('temp_cate', backData);
+                    console.log(rel);
+                    $('[name="categoryId"]').html(rel);
+                }
+            })
+
+
+            //图片预览
+            $('#inputCover').on('change', function () {
+                let fdIcon = this.files[0];
+                let fdUlr = URL.createObjectURL(fdIcon);
+                $(this).prev().attr('src', fdUlr);
+            })
+
+
+
+        })
+    </script>
 </body>
 
 </html>
