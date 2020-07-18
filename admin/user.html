@@ -24,19 +24,19 @@
                 <div class="form-group">
                     <label for="inputEmail1" class="col-sm-2 control-label">用户名称：</label>
                     <div class="col-sm-4">
-                        <input type="text" name="username" class="form-control username" id="inputEmail1" value="李思思">
+                        <input type="text" name="username" class="form-control username" id="username" value="李思思">
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="inputEmail2" class="col-sm-2 control-label">昵称：</label>
                     <div class="col-sm-4">
-                        <input type="text" name="nickname" class="form-control nickname" id="inputEmail2" value="哈哈思">
+                        <input type="text" name="nickname" class="form-control nickname" id="nickname" value="哈哈思">
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="inputEmail3" class="col-sm-2 control-label">邮箱：</label>
                     <div class="col-sm-4">
-                        <input type="text" name="email" class="form-control email" id="inputEmail3" value="520@163.com">
+                        <input type="text" name="email" class="form-control email" id="email" value="520@163.com">
                     </div>
                 </div>
 
@@ -56,7 +56,7 @@
                 <div class="form-group">
                     <label for="inputEmail4" class="col-sm-2 control-label">密码：</label>
                     <div class="col-sm-4">
-                        <input type="password" name="password" class="form-control password" id="inputEmail4"
+                        <input type="password" name="password" class="form-control password" id="password"
                             value="12345678">
                     </div>
                 </div>
@@ -69,5 +69,66 @@
         </div>
     </div>
 </body>
+<script src="./libs/http.js"></script>
+<script>
+    $(function () {
+        //初始化渲染页面数据
+        $.get({
+            url: BigNew.user_detail,
+            dataType: 'json',
+            success: function (backData) {
+                console.log(backData);
+                if (backData.code == 200) {
+                    //$('#username').val(backData.data.username);
+                    //$('#nickname').val(backData.data.nickname);
+                    //$('#email').val(backData.data.email);
+                    //$('#password').val(backData.data.password);
+                    for (const key in backData.data) {
+                        $('#' + key).val(backData.data[key])
+                    }
+                    $('#exampleInputFile').prev().attr('src', backData.data.userPic);
+                }
+            }
+        })
+
+        //点击编辑按钮提交数据
+        $('[type="submit"]').on('click', function (e) {
+            e.preventDefault();
+            //获取数据
+            let fd = new FormData(document.querySelector('form'));
+            $.ajax({
+                type: 'post',
+                url: BigNew.user_edit,
+                data: fd,
+                dataType: 'json',
+                processData: false,
+                contentType: false,
+                success: function (backData) {
+                    if (backData.code == 200) {
+                        alert('更新成功');
+                        $.get({
+                            //url: 'http://localhost:8080/api/v1/admin/user/info',
+                            url: BigNew.user_info,
+                            //设置请求头,但用的最多的方法是全局配置
+                            //headers: { 'Authorization': localStorage.getItem('token') },
+                            dataType: 'json',
+                            success: function (backData) {
+                                parent.$('.sider>.user_info>img').attr('src', backData.data.userPic);
+                                parent.$('.sider>.user_info i').text(backData.data.nickname);
+                                parent.$('.user_center_link>img').attr('src', backData.data.userPic);
+                            }
+                        })
+                    }
+                }
+            })
+        })
+        //图片预览
+        $('#exampleInputFile').on('change', function () {
+            let fdIcon = this.files[0];
+            let fdUlr = URL.createObjectURL(fdIcon);
+            $(this).prev().attr('src', fdUlr);
+        })
+    })
+</script>
 
 </html>
