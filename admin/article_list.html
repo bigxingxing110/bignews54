@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="./css/iconfont.css">
     <link rel="stylesheet" href="./css/main.css">
     <script src="./libs/jquery-1.12.4.min.js"></script>
+    <script src="./libs/bootstrap/js/bootstrap.min.js"></script>
+    <script src="./libs/jquery.twbsPagination.js"></script>
     <!-- 引入模板引擎js文件 -->
     <script src="./libs/template-web.js"></script>
 </head>
@@ -69,6 +71,8 @@
                 </tbody>
             </table>
             <div class="row text-center">
+                <ul class="pagination" id="pagination"></ul>
+                <p style="display: none;">没有数据</p>
             </div>
         </div>
     </div>
@@ -90,8 +94,8 @@
             <td class="text-center">{{v.date}}</td>
             <td class="text-center">{{v.state}}</td>
             <td class="text-center">
-                <a href="article_edit.html" class="btn btn-default btn-xs" data-id="{{v.categorId}}">编辑</a>
-                <a href="javascript:void(0);" class="btn btn-danger btn-xs delete" data-id="{{v.categorId}}">删除</a>
+                <a href="article_edit.html" class="btn btn-default btn-xs" data-id="{{v.id}}">编辑</a>
+                <a href="javascript:void(0);" class="btn btn-danger btn-xs delete" data-id="{{v.id}}" id='delete'>删除</a>
             </td>
         </tr>
         {{/each}}
@@ -100,6 +104,39 @@
     <script src="./libs/http.js"></script>
     <script>
         $(function () {
+            //4.将同一个ajax请求地址封装一个函数(当前的页码数(点击的页面数),回调函数)
+            //1.需要判断是否传了回调
+            //2.需要判断返回数据是否有值,显示没有数据，并且判断当前页面是否为一,否则会阻碍下面代码执行
+            function getListData(page, callback) {
+                $.ajax({
+                    type: 'get',
+                    url: BigNew.article_query,
+                    data: {
+                        type: $('#selCategory').val(),
+                        state: $('#selStatus').val(),
+                        perpage: 3,
+                        page: page || 1,//当前的显示页
+                    },
+                    dataType: 'json',
+                    success: function (backData) {
+                        if (backData.code == 200) {
+                            let rel = template('init_temp', backData);
+                            $('.container-fluid tbody').html(rel);
+                            if (callback != null && backData.data.data.length != 0) {
+                                callback(backData);
+                                $('#pagination').show().next().hide();
+                            } else if (backData.data.data.length == 0 && currentPage == 1) {
+                                $('#pagination').hide().next().show();
+                            } else if (backData.data.totalPage == currentPage - 1 && backData.data.data.length == 0) {
+                                currentPage -= 1;
+                                $('#pagination').twbsPagination('changeTotalPages', backData.data.totalPage, currentPage);
+                            }
+                        }
+
+                    }
+                })
+            }
+
             //发送ajax获取所有分类再分别设置到option里(可以复制上一个页面的)
             $.ajax({
                 type: 'get',
@@ -111,48 +148,140 @@
                 }
             })
 
+            //将当前的页吗设置为全局变量
+            let currentPage = null;
             //页面初始化
-            $.ajax({
-                type: 'get',
-                url: BigNew.article_query,
-                data: {
-                    type: $('#selCategory').val(),
-                    state: $('#selStatus').val(),
-                    perpage: 6,
-                },
-                dataType: 'json',
-                success: function (backData) {
-                    if (backData.code == 200) {
-                        let rel = template('init_temp', backData);
-                        $('.container-fluid tbody').html(rel);
+            getListData(null, function (backData) {
+                $('#pagination').twbsPagination({
+                    totalPages: backData.data.totalPage,
+                    visiblePages: 5,
+                    first: '首页',
+                    prev: '上一页',
+                    next: '下一页',
+                    last: '最后一页',
+                    onPageClick: function (event, page) {
+                        currentPage = page;
+                        getListData(page, null);
                     }
-
-                }
+                });
             })
 
-            //发送ajax请求获取查询数据进行模板渲染到页面
-            //点击筛选
+            //点击筛选注册点击事件
             $('#btnSearch').on('click', function (e) {
                 e.preventDefault();
-                $.ajax({
-                    type: 'get',
-                    url: BigNew.article_query,
-                    data: {
-                        type: $('#selCategory').val(),
-                        state: $('#selStatus').val(),
-                        perpage: 6,
-                    },
-                    dataType: 'json',
-                    success: function (backData) {
-                        if (backData.code == 200) {
-                            let rel = template('init_temp', backData);
-                            $('.container-fluid tbody').html(rel);
-                        }
-
-                    }
+                getListData(null, function (backData) {
+                    $('#pagination').twbsPagination('changeTotalPages', backData.data.totalPage, 1);
                 })
             })
+
+            //点击删除按钮执行的事件
+            $('.container-fluid tbody').on('click', '#delete', function (e) {
+                e.preventDefault();
+                if (confirm('确定要删除啊~？')) {
+                    let id = this.dataset.id;
+                    $.ajax({
+                        type: 'post',
+                        url: BigNew.article_delete,
+                        data: { id },
+                        success: function (backData) {
+                            if (backData.code == 204) {
+                                alert(backData.msg);
+                                getListData(currentPage, function (backData) {
+                                    //解决在点击删除事件内每次点击进行重构页码
+                                    $('#pagination').twbsPagination('changeTotalPages', backData.data.totalPage, currentPage);
+                                });
+                            }
+                        }
+                    })
+                }
+
+            })
+
+            //点击按钮
+            // 页中页,打开的连接，还会显示在页中页
+            $('#release_btn').on('click', function () {
+                parent.$('.level02>li:eq(1)').addClass('active').prev().removeClass('active');
+            })
+
+
+
+
+
+
+
+
+
+            //点击删除按钮注册事件
+            //bug1:最后页最后一条删除bug会显示没有数据
+            //解决：在封装中进行判断,如果没有数据并且总页数等于当前页-1
+            //bug2:在中间页删除可视页面数量条数,页码没有变化,
+            //bug3:点击没有文章的类别隐藏页码
+            //解决:需要判断返回数据是否有值,显示没有数据，并且判断当前页面是否为一,否则会阻碍下面代码执行
+
+            //------------------------------------------------------------------------------------------------------------------------
+            //页面初始化
+            //  $.ajax({
+            //      type: 'get',
+            //      url: BigNew.article_query,
+            //      data: {
+            //          type: $('#selCategory').val(),
+            //          state: $('#selStatus').val(),
+            //          perpage: 3,//每页显示的条数
+            //          page: 1,//当前的显示页
+            //      },
+            //      dataType: 'json',
+            //      success: function (backData) {
+            //          if (backData.code == 200) {
+            //              let rel = template('init_temp', backData);
+            //              $('.container-fluid tbody').html(rel);
+            //              console.log(backData);
+            //              //1.需要在初始化的时候初始页面分页
+            //              //2.页面点击时获取当前的页面数发送ajax请求再渲染页面
+            //              $('#pagination').twbsPagination({
+            //                  totalPages: backData.data.totalPage,
+            //                  visiblePages: 5,
+            //                  first: '首页',
+            //                  prev: '上一页',
+            //                  next: '下一页',
+            //                  last: '最后一页',
+            //                  onPageClick: function (event, page) {
+            //                      console.info(page + ' (from options)');
+            //                  }
+            //              });
+            //          }
+            //
+            //      }
+            //  })
+            //
+            //  //发送ajax请求获取查询数据进行模板渲染到页面
+            //  //点击筛选
+            //  $('#btnSearch').on('click', function (e) {
+            //      e.preventDefault();
+            //      $.ajax({
+            //          type: 'get',
+            //          url: BigNew.article_query,
+            //          data: {
+            //              type: $('#selCategory').val(),
+            //              state: $('#selStatus').val(),
+            //              perpage: 6,
+            //              page: 1,//当前的显示页
+            //          },
+            //          dataType: 'json',
+            //          success: function (backData) {
+            //              if (backData.code == 200) {
+            //                  let rel = template('init_temp', backData);
+            //                  $('.container-fluid tbody').html(rel);
+            //                  //3.点击筛选按钮重构页码
+            //                  $('#pagination').twbsPagination('changeTotalPages', backData.data.totalPage, 1);
+            //              }
+            //
+            //          }
+            //      })
+            //  })
+
+
         })
+        //--------------------------------------------------------------------------------------------------------------------
     </script>
 </body>
 
