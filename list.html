@@ -225,8 +225,77 @@
         <p>CopyRight © 2019 深圳大事件信息技术股份有限公司 All Rights Reserved</p>
         <p>电话：0755-****888 粤ICP备*******8号</p>
     </div>
+
+    <!-- list渲染 -->
+    <script type="text/template" id='list_temp'>
+        {{each data.data v}}
+        <div class="common_news_list">
+            <a href="./article.html?id={{v.id}}" class="list_pic"><img src="{{v.cover}}" alt=""></a>
+            <h4><a href="./article.html?id={{v.id}}">{{v.title}}</a></h4>
+            <p>{{v.content}}
+            </p>
+            <div class="new_info">
+                <span>标签：{{v.category}}&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;<i class="fa fa-eye"></i>&nbsp;阅读( {{v.read}}
+                    )&nbsp;&nbsp;&nbsp;<i class="fa fa-commenting"></i>&nbsp;评论( {{v.comments}} )</span>
+                <b>发布于 {{v.date}}</b>
+            </div>
+        </div>
+        {{/each}}
+    </script>
+
     <!-- 导包template -->
     <script src="./js/template-web.js"></script>
+    <script>
+        $(function () {
+            //一：获取跳转带过来的信息
+            let value = window.location.search.substring(1);
+            let value1 = value.split('=')[0];
+            let value2 = value.split('=')[1];
+            //1.判断是否为直接进入,直接进入直接打回首页
+            if (value) {
+                if (value1 == 'id') {
+                    //通过点击导航栏进入
+                    //1.根据id发送ajax请求获取数据渲染页面
+                    $.get({
+                        url: 'http://localhost:8080/api/v1/index/search',
+                        data: { type: value2 },
+                        dataType: 'json',
+                        success: function (backData) {
+                            //console.log(backData);
+                            //模板渲染
+                            let rel = template('list_temp', backData);
+                            $('.setfr').html(`<div class="list_title"><h3>科 技</h3></div>` + rel);
+                        }
+                    })
+                } else {
+                    //通过搜索进入
+                    let search = decodeURI(value2);
+                    $.get({
+                        url: 'http://localhost:8080/api/v1/index/search',
+                        data: { key: search },
+                        dataType: 'json',
+                        success: function (backData) {
+                            console.log(backData);
+                            if (backData.data.data.length == 0) {
+                                console.log('123')
+                                $('.setfr').html(`<div class="list_title"><h3>没有数据</h3></div>`)
+                            } else {
+                                //模板渲染
+                                let rel = template('list_temp', backData);
+                                $('.setfr').html(`<div class="list_title"><h3>科 技</h3></div>` + rel);
+                            }
+
+                        }
+                    })
+                }
+            } else {
+                window.location.href = './index.html'
+            }
+            //2.判断是搜索跳转还是nav跳转
+            //3.发送ajax请求进行页面渲染
+            //4.判断是否有参数,如果没有参数渲染没有数据
+        })
+    </script>
 </body>
 
 </html>

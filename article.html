@@ -209,6 +209,83 @@
     <script src="./js/template-web.js"></script>
     <script src="./js/jquery-1.12.4.min.js"></script>
 
+    <!-- 文章内容渲染 -->
+    <script id="article_info" type="text/template">
+        {{data.autor}} 发布于 {{data.date}}&nbsp;&nbsp;&nbsp;分类: {{data.category}}&nbsp;&nbsp;&nbsp;阅读:
+        {{data.read}}&nbsp;&nbsp;&nbsp;评论: ({{data.comments}})
+    </script>
+    <!-- 文章评论渲染 -->
+    <script type="text/template" id="comment_temp">
+        {{each data v}}
+        <div class="comment_detail_list">
+            <div class="person_pic fl">{{v.author.substring(0,1)}}</div>
+            <div class="name_time fl"><b>{{v.author}}</b><span>{{v.time}}</span></div>
+            <div class="comment_text fl">
+                {{v.content}}
+            </div>
+        </div>
+        {{/each}}
+    </script>
+    <script>
+        $(function () {
+            //一:页面渲染
+            //1.获取id
+            let id = window.location.search.split('=')[1]
+            //2.发送ajax请求 3.页面渲染(模板引擎和单独设置相结合)4.处理上一页和下一页
+            $.ajax({
+                type: 'get',
+                url: 'http://localhost:8080/api/v1/index/article',
+                data: { id },
+                dataType: 'json',
+                success: function (backData) {
+                    //console.log(backData);
+                    if (backData.code == 200) {
+                        $('.breadcrumb').children('a').eq(1).text(backData.data.category);
+                        $('.article_title').text(backData.data.title);
+                        $('.article_con').text(backData.data.content);
+                        $('.article_links').children('a').eq(1).attr('href', `./article.html?id=${backData.data.prev.id}`).text(backData.data.prev.title)
+                        $('.article_links').children('a').eq(0).attr('href', `./article.html?id=${backData.data.next.id}`).text(backData.data.next.title)
+                        let rel = template('article_info', backData);
+                        $('.article_info').html(rel);
+                    }
+                }
+            })
+            //二：展示文章下的所有评论
+            $.ajax({
+                type: 'get',
+                url: 'http://localhost:8080/api/v1/index/get_comment',
+                data: { articleId: id },
+                dataType: 'json',
+                success: function (backData) {
+                    //console.log(backData.data);
+                    $('.comment_count').text(`${backData.data.length}条评论`)
+                    let rel = template('comment_temp', backData);
+                    $('.comment_list_con').html(rel);
+                }
+            })
+            //三：发表评论
+            $('.comment_sub').on('click', function (e) {
+                e.preventDefault();
+                //获取用户名和评论
+                let author = $('.comment_name').val();
+                let content = $('.comment_input').val();
+                $.post({
+                    url: 'http://localhost:8080/api/v1/index/post_comment',
+                    data: { articleId: id, author, content },
+                    dataType: 'json',
+                    success: function (backData) {
+                        let reg = /^2\d\d$/;
+                        if (reg.test(backData.code)) {
+                            alert('评论发表成功');
+                            $('.comment_name').val('');
+                            $('.comment_input').val('');
+                        }
+                    }
+                })
+            })
+
+        })
+    </script>
 </body>
 
 </html>
